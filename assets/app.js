@@ -2621,6 +2621,89 @@
   });
   */
 
+  function persistAllData() {
+    try {
+      localStorage.setItem(projectStorageKey, JSON.stringify(savedProjects));
+      localStorage.setItem(projectBackupStorageKey, JSON.stringify(savedProjects));
+      localStorage.setItem(orgDataStorageKey, JSON.stringify(orgData));
+      localStorage.setItem(progressDataStorageKey, JSON.stringify(progressData));
+      localStorage.setItem(progressProjectStorageKey, JSON.stringify(progressProjectsByYear));
+      localStorage.setItem(draftStorageKey, JSON.stringify(projectDrafts));
+    } catch (e) {
+      console.warn("持久化数据失败：", e);
+    }
+  }
+
+  function exportAllData() {
+    persistAllData();
+    var data = {};
+    var keys = Object.keys(localStorage).filter(function (k) {
+      return k.indexOf("construction-") === 0;
+    });
+    keys.forEach(function (k) {
+      try {
+        data[k] = JSON.parse(localStorage.getItem(k));
+      } catch (e) {
+        data[k] = localStorage.getItem(k);
+      }
+    });
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "construction-data-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importAllData(file) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        if (typeof data !== "object" || data === null) {
+          alert("文件格式不正确，请选择有效的备份文件");
+          return;
+        }
+        var count = 0;
+        Object.keys(data).forEach(function (k) {
+          if (k.indexOf("construction-") === 0) {
+            localStorage.setItem(k, JSON.stringify(data[k]));
+            count++;
+          }
+        });
+        if (count === 0) {
+          alert("未找到有效的施工管理数据");
+          return;
+        }
+        alert("成功恢复 " + count + " 项数据，页面即将刷新");
+        setTimeout(function () { window.location.reload(); }, 800);
+      } catch (err) {
+        alert("文件解析失败：" + (err.message || "未知错误"));
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  var exportBtn = document.getElementById("export-data-btn");
+  var importBtn = document.getElementById("import-data-btn");
+  var importFile = document.getElementById("import-data-file");
+  if (exportBtn) exportBtn.addEventListener("click", exportAllData);
+  if (importBtn && importFile) {
+    importBtn.addEventListener("click", function () { importFile.click(); });
+    importFile.addEventListener("change", function () {
+      if (importFile.files && importFile.files.length) {
+        importAllData(importFile.files[0]);
+        importFile.value = "";
+      }
+    });
+  }
+
+  window.addEventListener("beforeunload", persistAllData);
+  window.addEventListener("pagehide", persistAllData);
+
   function startApp() {
     var initial = window.location.hash ? window.location.hash.replace("#", "") : "dashboard";
     readDrafts();
@@ -2651,13 +2734,18 @@
           "construction-progress-output-data": progressDataStorageKey,
           "construction-progress-year-projects": progressProjectStorageKey
         };
+        var loadedAny = false;
         Object.keys(keyMap).forEach(function (srcKey) {
           var targetKey = keyMap[srcKey];
           var existing = localStorage.getItem(targetKey);
-          if (!existing || existing === "[]" || existing === "{}" || existing === "") {
+          if (existing === null) {
             localStorage.setItem(targetKey, JSON.stringify(data[srcKey]));
+            loadedAny = true;
           }
         });
+        if (loadedAny) {
+          console.log("已从 default-data.json 加载初始数据");
+        }
       })
       .catch(function (err) {
         console.warn("加载默认数据失败，使用空数据启动：", err);

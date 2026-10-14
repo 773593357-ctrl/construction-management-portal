@@ -634,6 +634,9 @@
         </div>
         <div class="top-actions">
           <input class="search" type="search" placeholder="搜索项目、责任人、分包单位">
+          <button class="btn" id="export-data-btn">备份数据</button>
+          <button class="btn" id="import-data-btn">恢复数据</button>
+          <input type="file" id="import-data-file" accept=".json" style="display:none">
           <button class="btn">导出报表</button>
           <button class="btn primary" id="open-project-modal" style="display: none;">新增项目</button>
         </div>
@@ -968,7 +971,7 @@
   </div>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="assets/app.js?v=20261014-default-data"></script>
+  <script src="assets/app.js?v=20261014-persist"></script>
 
 
 </body></html>
