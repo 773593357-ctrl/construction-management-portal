@@ -2621,18 +2621,48 @@
   });
   */
 
-  var initial = window.location.hash ? window.location.hash.replace("#", "") : "dashboard";
-  readDrafts();
-  renderProjectDrafts();
-  readSavedProjects();
-  readOrgData();
-  captureLedgerProjectsFromDom();
-  initProgressView();
-  renderSavedProjects();
-  initProjectLedgerColumnResize();
-  initTableColumnResize(document.getElementById("org-table"), orgColumnWidthKey, { minWidth: 72, maxWidth: 520, minTableWidth: 1480 });
-  bindTwoDecimalInputs();
-  activate(initial);
-  applyProjectFilters();
-  updateOrgSummary();
+  function startApp() {
+    var initial = window.location.hash ? window.location.hash.replace("#", "") : "dashboard";
+    readDrafts();
+    renderProjectDrafts();
+    readSavedProjects();
+    readOrgData();
+    captureLedgerProjectsFromDom();
+    initProgressView();
+    renderSavedProjects();
+    initProjectLedgerColumnResize();
+    initTableColumnResize(document.getElementById("org-table"), orgColumnWidthKey, { minWidth: 72, maxWidth: 520, minTableWidth: 1480 });
+    bindTwoDecimalInputs();
+    activate(initial);
+    applyProjectFilters();
+    updateOrgSummary();
+  }
+
+  function loadDefaultData() {
+    return fetch("assets/default-data.json")
+      .then(function (res) {
+        if (!res.ok) throw new Error("default-data.json load failed");
+        return res.json();
+      })
+      .then(function (data) {
+        var keyMap = {
+          "construction-project-ledger": projectStorageKey,
+          "construction-project-ledger-backup": projectBackupStorageKey,
+          "construction-progress-output-data": progressDataStorageKey,
+          "construction-progress-year-projects": progressProjectStorageKey
+        };
+        Object.keys(keyMap).forEach(function (srcKey) {
+          var targetKey = keyMap[srcKey];
+          var existing = localStorage.getItem(targetKey);
+          if (!existing || existing === "[]" || existing === "{}" || existing === "") {
+            localStorage.setItem(targetKey, JSON.stringify(data[srcKey]));
+          }
+        });
+      })
+      .catch(function (err) {
+        console.warn("加载默认数据失败，使用空数据启动：", err);
+      });
+  }
+
+  loadDefaultData().then(startApp);
 })();
